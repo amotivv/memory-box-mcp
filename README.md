@@ -1,4 +1,16 @@
-# Memory Box MCP Server
+<p align="center">
+  <img src="https://storage.googleapis.com/amotivv-public/memory-box-logo.png" alt="Memory Box Logo" width="200"/>
+</p>
+
+<h1 align="center">Memory Box MCP Server</h1>
+
+<p align="center">
+  Cline MCP integration for Memory Box - save, search, and format memories with semantic understanding
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+</p>
 
 This MCP server provides tools for interacting with a Memory Box instance, allowing you to save and search memories using semantic search directly from Cline.
 
