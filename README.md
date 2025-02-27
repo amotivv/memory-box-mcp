@@ -2,6 +2,18 @@
 
 This MCP server provides tools for interacting with a Memory Box instance, allowing you to save and search memories using semantic search directly from Cline.
 
+## Related Projects
+
+This MCP server is designed to work with [Memory Box](https://github.com/amotivv/memory-box), a semantic memory storage and retrieval system powered by vector embeddings.
+
+Memory Box provides the backend API that this MCP server communicates with, allowing you to:
+- Store memories with vector embeddings for semantic search
+- Organize memories into customizable buckets
+- Search for memories based on meaning, not just keywords
+- Retrieve memories with detailed context
+
+For more information about Memory Box, including how to set up your own instance, please visit the [Memory Box repository](https://github.com/amotivv/memory-box).
+
 ## Features
 
 - **Save Memories**: Save formatted memories to your Memory Box
@@ -11,7 +23,9 @@ This MCP server provides tools for interacting with a Memory Box instance, allow
 
 ## Installation
 
-The server has been installed and configured for use with Cline. To complete the setup:
+The server has been installed and configured for use with Cline. Note that you need a running Memory Box instance (either self-hosted or using the hosted version at memorybox.amotivv.ai) to use this MCP server.
+
+To complete the setup:
 
 1. Edit the Cline MCP settings file at:
    ```
