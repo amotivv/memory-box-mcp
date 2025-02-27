@@ -178,7 +178,7 @@ To customize the system prompt:
        "<path-to-repository>/build/index.js"
      ],
      "env": {
-       "MEMORY_BOX_API_URL": "https://memorybox.amotivv.ai",
+       "MEMORY_BOX_API_URL": "https://your-memory-box-instance",
        "MEMORY_BOX_TOKEN": "your-token-here",
        "DEFAULT_BUCKET": "General",
        "SYSTEM_PROMPT": "Your custom system prompt here..."
