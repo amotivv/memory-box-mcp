@@ -32,6 +32,7 @@ For more information about Memory Box, including how to set up your own instance
 - **Search Memories**: Search your memories using semantic search
 - **Retrieve Memories**: Get all memories or memories from specific buckets
 - **Format Memories**: Format memories according to a structured system prompt
+- **Usage Statistics**: View your current plan, usage metrics, and resource limits
 
 ## Installation
 
@@ -123,6 +124,24 @@ Use the format_memory tool to format this text: "Vector databases like pgvector 
 Parameters:
 - `text` (required): The text to format
 - `type` (optional): The type of memory (TECHNICAL, DECISION, SOLUTION, CONCEPT, REFERENCE, APPLICATION, FACT) (default: "TECHNICAL")
+
+### Get Usage Stats
+
+Retrieve user usage statistics and plan information:
+
+```
+Use the get_usage_stats tool to show me my current plan and usage metrics
+```
+
+This tool returns:
+- Current plan information (e.g., free, basic, professional, legacy)
+- User status and limit enforcement information
+- Current month usage metrics (store operations, search operations, API calls)
+- Data processing volume with human-readable formatting
+- Resource limits based on your plan (if applicable)
+- Operation breakdown by type
+
+No parameters are required for this operation.
 
 ## Customization
 

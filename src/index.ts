@@ -42,6 +42,21 @@ if (process.env.SYSTEM_PROMPT && !validateSystemPrompt(SYSTEM_PROMPT)) {
 }
 
 /**
+ * Format a byte size into a human-readable string
+ */
+function formatBytes(bytes: number, decimals: number = 2): string {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+/**
  * Memory Box API Client
  * Handles communication with the Memory Box API
  */
@@ -153,6 +168,31 @@ class MemoryBoxClient {
         throw new McpError(
           ErrorCode.InternalError,
           `Failed to get bucket memories: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get user usage statistics and plan information
+   */
+  async getUserStats(): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v2/usage`,
+        {
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to retrieve usage statistics: ${error.response?.data?.detail || error.message}`
         );
       }
       throw error;
@@ -294,6 +334,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ["text"]
+        }
+      },
+      {
+        name: "get_usage_stats",
+        description: "Retrieve user usage statistics and plan information",
+        inputSchema: {
+          type: "object",
+          properties: {
+            // No specific parameters needed for this operation
+          }
         }
       }
     ]
@@ -444,6 +494,53 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [{
           type: "text",
           text: `Formatted memory:\n\n${formattedText}`
+        }]
+      };
+    }
+
+    case "get_usage_stats": {
+      // Get usage statistics
+      const result = await memoryBoxClient.getUserStats();
+
+      // Format the results in a user-friendly way
+      let responseText = "Usage Statistics:\n\n";
+      
+      // Add plan information
+      responseText += `Current Plan: ${result.plan}\n`;
+      if (result.is_legacy_user) {
+        responseText += "Status: Legacy User (No Enforced Limits)\n\n";
+      } else {
+        responseText += "Status: Standard User\n\n";
+      }
+      
+      // Add current month usage
+      responseText += "Current Month Usage:\n";
+      responseText += `- Store Memory Operations: ${result.current_month_usage.store_memory_count}\n`;
+      responseText += `- Search Memory Operations: ${result.current_month_usage.search_memory_count}\n`;
+      responseText += `- API Calls: ${result.current_month_usage.api_call_count}\n`;
+      responseText += `- Total Data Processed: ${formatBytes(result.current_month_usage.total_bytes_processed)}\n\n`;
+      
+      // Add limits if not a legacy user
+      if (!result.is_legacy_user && result.limits) {
+        responseText += "Plan Limits:\n";
+        responseText += `- Store Memory Limit: ${result.limits.store_memory_limit} operations\n`;
+        responseText += `- Search Memory Limit: ${result.limits.search_memory_limit} operations\n`;
+        responseText += `- API Call Limit: ${result.limits.api_call_limit} operations\n`;
+        responseText += `- Storage Limit: ${formatBytes(result.limits.storage_limit_bytes)}\n\n`;
+      }
+      
+      // Add operation breakdown if available
+      if (result.operations_breakdown && result.operations_breakdown.length > 0) {
+        responseText += "Operation Breakdown:\n";
+        result.operations_breakdown.forEach((op: any) => {
+          responseText += `- ${op.operation}: ${op.count} operations\n`;
+        });
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: responseText
         }]
       };
     }
