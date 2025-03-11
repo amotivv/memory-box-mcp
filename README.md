@@ -10,6 +10,8 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+</p>
+<p align="center">
   <a href="https://glama.ai/mcp/servers/wtbejx9zwc">
     <img width="380" height="200" src="https://glama.ai/mcp/servers/wtbejx9zwc/badge" />
   </a>
