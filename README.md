@@ -10,6 +10,9 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://glama.ai/mcp/servers/wtbejx9zwc">
+    <img width="380" height="200" src="https://glama.ai/mcp/servers/wtbejx9zwc/badge" />
+  </a>
 </p>
 
 This MCP server provides tools for interacting with a Memory Box instance, allowing you to save and search memories using semantic search directly from Cline.
