@@ -43,6 +43,14 @@ For more information about Memory Box, including how to set up your own instance
 
 The server has been installed and configured for use with Cline. Note that you need a running Memory Box instance (either self-hosted or using the hosted version at memorybox.amotivv.ai) to use this MCP server.
 
+### Installing via Smithery
+
+To install Memory Box MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@amotivv/memory-box-mcp):
+
+```bash
+npx -y @smithery/cli install @amotivv/memory-box-mcp --client claude
+```
+
 To complete the setup:
 
 1. Edit the Cline MCP settings file at:
