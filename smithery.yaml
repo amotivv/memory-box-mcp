@@ -1,0 +1,34 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - memoryBoxToken
+    properties:
+      memoryBoxApiUrl:
+        type: string
+        default: https://memorybox.amotivv.ai
+        description: URL for the Memory Box instance.
+      memoryBoxToken:
+        type: string
+        description: Token for authenticating with the Memory Box instance.
+      defaultBucket:
+        type: string
+        default: General
+        description: Default bucket to store or query memories.
+      systemPrompt:
+        type: string
+        default: ""
+        description: Optional custom system prompt.
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => { const env = { ...process.env, MEMORY_BOX_API_URL: config.memoryBoxApiUrl || 'https://memorybox.amotivv.ai', MEMORY_BOX_TOKEN: config.memoryBoxToken, DEFAULT_BUCKET: config.defaultBucket || 'General' }; if(config.systemPrompt && config.systemPrompt.trim() !== '') { env.SYSTEM_PROMPT = config.systemPrompt; } return { command: 'node', args: ['build/index.js'], env }; }
+  exampleConfig:
+    memoryBoxApiUrl: https://memorybox.amotivv.ai
+    memoryBoxToken: dummy-token-123456
+    defaultBucket: General
+    systemPrompt: Your custom system prompt here...
