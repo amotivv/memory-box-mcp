@@ -68,15 +68,66 @@ class MemoryBoxClient {
     this.baseUrl = baseUrl;
     this.token = token;
   }
+  
+  /**
+   * Get a list of all available buckets
+   */
+  async getBuckets(): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v2/buckets`,
+        {
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get buckets: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
+  }
 
   /**
-   * Save a memory to Memory Box
+   * Save a memory to Memory Box with support for source_type and reference_data
    */
-  async saveMemory(text: string, bucketId: string = DEFAULT_BUCKET): Promise<any> {
+  async saveMemory(
+    text: string, 
+    bucketId: string = DEFAULT_BUCKET, 
+    sourceType: string = "llm_plugin",
+    referenceData?: any
+  ): Promise<any> {
     try {
+      // Build the request body
+      const requestBody: any = {
+        text,
+        bucketId,
+        source_type: sourceType
+      };
+
+      // Add reference_data if provided
+      if (referenceData) {
+        requestBody.reference_data = referenceData;
+      } else {
+        // Add default reference_data for Claude/VSCode integration
+        requestBody.reference_data = {
+          source: {
+            platform: "claude_desktop",
+            type: "llm_plugin",
+            version: "1.0"
+          }
+        };
+      }
+
       const response = await axios.post(
         `${this.baseUrl}/api/v2/memory`,
-        { text, bucketId },
+        requestBody,
         {
           headers: {
             "Content-Type": "application/json",
@@ -198,6 +249,57 @@ class MemoryBoxClient {
       throw error;
     }
   }
+  
+  /**
+   * Get memory processing status
+   */
+  async getMemoryStatus(memoryId: number | string): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v2/memory/${memoryId}/status`,
+        {
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get memory status: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
+  }
+  
+  /**
+   * Get related memories for a specific memory
+   */
+  async getRelatedMemories(memoryId: number | string, minSimilarity: number = 0.7): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/api/v2/memory/${memoryId}/related`,
+        {
+          params: { min_similarity: minSimilarity },
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to get related memories: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
+  }
 }
 
 /**
@@ -218,14 +320,12 @@ function formatMemory(text: string, type: string = "TECHNICAL"): string {
 
   // Format based on memory type
   if (memoryType === "FACT") {
-    return `FACT: ${text} as mentioned on ${today}.`;
+    return `${today}: FACT: ${text}`;
   }
 
-  // For other memory types, use the standard format
-  // Note: This is a simple implementation. In a real-world scenario,
-  // you might want to use an LLM to format the memory more intelligently.
-  const formattedType = memoryType.charAt(0) + memoryType.slice(1).toLowerCase();
-  return `${today}: ${formattedType} - ${text}`;
+  // For other memory types, use the standard format with uppercase type
+  // Update to match the preferred format in the new system prompt
+  return `${today}: ${memoryType} - ${text}`;
 }
 
 /**
@@ -273,6 +373,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             type: {
               type: "string",
               description: `The type of memory (${MEMORY_TYPES.join(", ")}) for formatting (default: "TECHNICAL")`
+            },
+            reference_data: {
+              type: "object",
+              description: "Additional metadata about the memory source and context (optional)"
+            },
+            source_type: {
+              type: "string",
+              description: "Type of memory source (default: 'llm_plugin')"
             }
           },
           required: ["text"]
@@ -319,6 +427,38 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
+        name: "get_related_memories",
+        description: "Find semantically similar memories to a specific memory",
+        inputSchema: {
+          type: "object",
+          properties: {
+            memory_id: {
+              type: ["integer", "string"],
+              description: "The ID of the memory to find related memories for"
+            },
+            min_similarity: {
+              type: "number",
+              description: "Minimum similarity threshold (0.0-1.0) for related memories (default: 0.7)"
+            }
+          },
+          required: ["memory_id"]
+        }
+      },
+      {
+        name: "check_memory_status",
+        description: "Check the processing status of a memory",
+        inputSchema: {
+          type: "object",
+          properties: {
+            memory_id: {
+              type: ["integer", "string"],
+              description: "The ID of the memory to check status for"
+            }
+          },
+          required: ["memory_id"]
+        }
+      },
+      {
         name: "format_memory",
         description: "Format a text according to the memory system prompt without saving",
         inputSchema: {
@@ -339,6 +479,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "get_usage_stats",
         description: "Retrieve user usage statistics and plan information",
+        inputSchema: {
+          type: "object",
+          properties: {
+            // No specific parameters needed for this operation
+          }
+        }
+      },
+      {
+        name: "get_buckets",
+        description: "Retrieve a list of all available buckets",
         inputSchema: {
           type: "object",
           properties: {
@@ -368,6 +518,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const bucketId = String(request.params.arguments?.bucket_id || DEFAULT_BUCKET);
       const shouldFormat = request.params.arguments?.format !== false; // Default to true
       const type = String(request.params.arguments?.type || "TECHNICAL");
+      const sourceType = String(request.params.arguments?.source_type || "llm_plugin");
+      const referenceData = request.params.arguments?.reference_data;
 
       if (!text) {
         throw new McpError(ErrorCode.InvalidParams, "Text is required");
@@ -376,8 +528,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Format the memory if requested
       const formattedText = shouldFormat ? formatMemory(text, type) : text;
 
-      // Save the memory
-      const result = await memoryBoxClient.saveMemory(formattedText, bucketId);
+      // Save the memory with source_type and reference_data
+      const result = await memoryBoxClient.saveMemory(formattedText, bucketId, sourceType, referenceData);
 
       return {
         content: [{
@@ -537,6 +689,104 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
       }
 
+      return {
+        content: [{
+          type: "text",
+          text: responseText
+        }]
+      };
+    }
+    
+    case "get_related_memories": {
+      // Validate parameters
+      const memoryId = request.params.arguments?.memory_id;
+      const minSimilarity = Number(request.params.arguments?.min_similarity) || 0.7;
+      
+      if (!memoryId) {
+        throw new McpError(ErrorCode.InvalidParams, "Memory ID is required");
+      }
+      
+      // Get related memories
+      const result = await memoryBoxClient.getRelatedMemories(String(memoryId), minSimilarity);
+      
+      // Format the results
+      let responseText = `Related memories for memory ID ${memoryId} (min similarity: ${minSimilarity * 100}%):\n\n`;
+      
+      if (result.items && result.items.length > 0) {
+        result.items.forEach((memory: any, index: number) => {
+          const similarity = memory.similarity ? ` (${Math.round(memory.similarity * 100)}% similar)` : "";
+          responseText += `${index + 1}. [ID: ${memory.id}]${similarity} ${memory.text}\n\n`;
+        });
+      } else {
+        responseText += "No related memories found.";
+      }
+      
+      return {
+        content: [{
+          type: "text",
+          text: responseText
+        }]
+      };
+    }
+    
+    case "check_memory_status": {
+      // Validate parameters
+      const memoryId = request.params.arguments?.memory_id;
+      
+      if (!memoryId) {
+        throw new McpError(ErrorCode.InvalidParams, "Memory ID is required");
+      }
+      
+      // Get memory status
+      const result = await memoryBoxClient.getMemoryStatus(String(memoryId));
+      
+      // Format the results
+      let responseText = `Memory status for ID ${memoryId}:\n\n`;
+      responseText += `Status: ${result.processing_status}\n`;
+      
+      if (result.processed_at) {
+        responseText += `Processed at: ${result.processed_at}\n`;
+      }
+      
+      if (result.attempts !== null && result.attempts !== undefined) {
+        responseText += `Processing attempts: ${result.attempts}\n`;
+      }
+      
+      return {
+        content: [{
+          type: "text",
+          text: responseText
+        }]
+      };
+    }
+    
+    case "get_buckets": {
+      // Get all available buckets
+      const result = await memoryBoxClient.getBuckets();
+      
+      // Format the results
+      let responseText = "Available buckets:\n\n";
+      
+      if (result.items && result.items.length > 0) {
+        result.items.forEach((bucket: any, index: number) => {
+          responseText += `${index + 1}. ${bucket.name} (ID: ${bucket.id})`;
+          
+          // Add memory count if available
+          if (bucket.memory_count !== undefined) {
+            responseText += ` - ${bucket.memory_count} memories`;
+          }
+          
+          // Add creation date if available
+          if (bucket.created_at) {
+            responseText += ` - Created: ${bucket.created_at}`;
+          }
+          
+          responseText += "\n";
+        });
+      } else {
+        responseText += "No buckets found.";
+      }
+      
       return {
         content: [{
           type: "text",
