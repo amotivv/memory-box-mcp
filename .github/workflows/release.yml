@@ -30,13 +30,9 @@ jobs:
       run: npm run build-extension
       
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        files: ./dist/memory-box.dxt
         body: |
           ## Installation
           
@@ -55,13 +51,5 @@ jobs:
           See [CHANGELOG.md](https://github.com/amotivv/memory-box-mcp/blob/main/CHANGELOG.md) for details.
         draft: false
         prerelease: false
-        
-    - name: Upload Desktop Extension
-      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/memory-box.dxt
-        asset_name: memory-box.dxt
-        asset_content_type: application/zip
