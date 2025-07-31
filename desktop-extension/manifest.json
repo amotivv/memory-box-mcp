@@ -8,8 +8,8 @@
   "long_description": "Memory Box enables Claude to store and retrieve memories using semantic search. Save important information, search by meaning, organize in buckets, and maintain a persistent knowledge base across conversations. Features include bucket organization, relationship management, usage tracking, and more.",
   "author": {
     "name": "amotivv, inc.",
-    "email": "support@amotivv.ai",
-    "url": "https://memorybox.amotivv.ai"
+    "email": "ai@amotivv.com",
+    "url": "https://github.com/amotivv"
   },
   "repository": {
     "type": "git",
