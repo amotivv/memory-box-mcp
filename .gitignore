@@ -8,6 +8,7 @@ yarn-error.log
 build/
 dist/
 *.tsbuildinfo
+.staging/
 
 # Environment
 .env

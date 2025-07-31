@@ -1,7 +1,7 @@
 {
   "name": "memory-box-mcp",
-  "version": "0.1.0",
-  "description": "A Model Context Protocol Server that provides interactive memory",
+  "version": "1.0.0",
+  "description": "A Model Context Protocol Server for Memory Box - semantic memory storage and retrieval",
   "private": true,
   "type": "module",
   "bin": {
@@ -15,15 +15,15 @@
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "prompt-helper": "node build/prompt-helper.js"
+    "build-extension": "node scripts/build-extension-flat.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
-    "axios": "^1.8.1",
-    "date-fns": "^4.1.0"
+    "axios": "^1.7.9"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "archiver": "^7.0.1"
   }
 }
