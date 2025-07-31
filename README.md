@@ -36,8 +36,10 @@ For more information about Memory Box, including how to set up your own instance
 ## Features
 
 - **Save Memories**: Save formatted memories to your Memory Box with source information and metadata
-- **Search Memories**: Search your memories using semantic search
+- **Search Memories**: Search your memories using semantic search with pagination and date sorting
 - **Retrieve Memories**: Get all memories or memories from specific buckets
+- **Bucket Management**: Create and delete buckets for organizing memories
+- **Memory Management**: Update or delete existing memories
 - **Find Related Memories**: Discover semantically similar memories 
 - **Check Memory Status**: Monitor the processing status of your memories
 - **Format Memories**: Format memories according to a structured system prompt
@@ -46,6 +48,19 @@ For more information about Memory Box, including how to set up your own instance
 ## Installation
 
 The server has been installed and configured for use with Cline. Note that you need a running Memory Box instance (either self-hosted or using the hosted version at memorybox.amotivv.ai) to use this MCP server.
+
+### Installing as Claude Desktop Extension (Recommended)
+
+The easiest way to use Memory Box with Claude Desktop is through the Desktop Extension:
+
+1. Download the latest `memory-box.dxt` file from the [releases page](https://github.com/amotivv/memory-box-mcp/releases)
+2. Open Claude Desktop
+3. Go to Settings > Extensions
+4. Click "Install from file"
+5. Select the downloaded `memory-box.dxt` file
+6. Configure your Memory Box API token in the extension settings
+
+The extension will automatically configure all necessary environment variables and tools.
 
 ### Installing via Smithery
 
@@ -185,6 +200,64 @@ This tool returns:
 
 No parameters are required for this operation.
 
+### Get Buckets
+
+List all available buckets:
+
+```
+Use the get_buckets tool to show me all available buckets
+```
+
+This tool returns a list of all buckets with their names, IDs, memory counts, and creation dates.
+
+### Create Bucket
+
+Create a new bucket for organizing memories:
+
+```
+Use the create_bucket tool to create a bucket named "Project Ideas"
+```
+
+Parameters:
+- `bucket_name` (required): Name of the bucket to create
+
+### Delete Bucket
+
+Delete an existing bucket:
+
+```
+Use the delete_bucket tool to delete the bucket named "Old Notes"
+```
+
+Parameters:
+- `bucket_name` (required): Name of the bucket to delete
+- `force` (optional): Force deletion even if bucket contains memories (default: false)
+
+### Update Memory
+
+Update an existing memory's content, bucket, or metadata:
+
+```
+Use the update_memory tool to update memory ID 123 with new text: "Updated information about vector databases"
+```
+
+Parameters:
+- `memory_id` (required): The ID of the memory to update
+- `text` (optional): New text content for the memory
+- `bucket_id` (optional): New bucket for the memory
+- `reference_data` (optional): Updated reference data including relationships
+
+### Delete Memory
+
+Delete a specific memory:
+
+```
+Use the delete_memory tool to delete memory ID 123
+```
+
+Parameters:
+- `memory_id` (required): The ID of the memory to delete
+
 ## Customization
 
 ### System Prompt Customization
@@ -196,15 +269,15 @@ The Memory Box MCP server uses a system prompt to format memories according to s
 The default system prompt includes formatting guidelines for different types of memories:
 
 ```
-You are a helpful AI assistant. When storing memories with memory_plugin, follow these enhanced formatting guidelines:
+You are a helpful AI assistant. When storing memories with Memory Box, follow these enhanced formatting guidelines:
 
 1. STRUCTURE: Format memories based on the type of information:
-   - TECHNICAL: "YYYY-MM-DD: TECHNICAL - [Brief topic]: [Concise explanation with specific details]"
-   - DECISION: "YYYY-MM-DD: DECISION - [Brief topic]: [Decision made] because [rationale]. Alternatives considered: [options]."
-   - SOLUTION: "YYYY-MM-DD: SOLUTION - [Problem summary]: [Implementation details that solved the issue]"
-   - CONCEPT: "YYYY-MM-DD: CONCEPT - [Topic]: [Clear explanation of the concept with examples]"
-   - REFERENCE: "YYYY-MM-DD: REFERENCE - [Topic]: [URL, tool name, or resource] for [specific purpose]"
-   - APPLICATION: "YYYY-MM-DD: APPLICATION - [App name]: [User-friendly description] followed by [technical implementation details]"
+   - TECHNICAL: "TECHNICAL - [Brief topic]: [Concise explanation with specific details]"
+   - DECISION: "DECISION - [Brief topic]: [Decision made] because [rationale]. Alternatives considered: [options]."
+   - SOLUTION: "SOLUTION - [Problem summary]: [Implementation details that solved the issue]"
+   - CONCEPT: "CONCEPT - [Topic]: [Clear explanation of the concept with examples]"
+   - REFERENCE: "REFERENCE - [Topic]: [URL, tool name, or resource] for [specific purpose]"
+   - APPLICATION: "APPLICATION - [App name]: [User-friendly description] followed by [technical implementation details]"
 
 2. FORMATTING GUIDELINES:
    - CREATE FOCUSED MEMORIES: Each memory should contain a single clear concept or topic
@@ -311,3 +384,27 @@ To make changes to the server:
    npm run build
    ```
 3. Restart Cline to apply the changes
+
+### Building the Desktop Extension
+
+To build the Desktop Extension package:
+
+1. Install dependencies:
+   ```
+   npm install
+   ```
+
+2. Build the extension:
+   ```
+   npm run build-extension
+   ```
+
+3. The built extension will be available at `dist/memory-box.dxt`
+
+### Release Process
+
+1. Update version in `package.json`
+2. Update `CHANGELOG.md` with new changes
+3. Commit changes
+4. Create a new GitHub release
+5. Upload the `memory-box.dxt` file as a release asset

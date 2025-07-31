@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Memory Box MCP Server
  * 
@@ -16,30 +14,17 @@ import {
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
-import { format } from "date-fns";
-import { DEFAULT_SYSTEM_PROMPT, loadSystemPrompt, validateSystemPrompt } from "./system-prompt.js";
+// Add immediate debug output
+console.error("DEBUG: Memory Box MCP Server loading...");
 
 // Configuration from environment variables
 const MEMORY_BOX_API_URL = process.env.MEMORY_BOX_API_URL || "https://memorybox.amotivv.ai";
 const MEMORY_BOX_TOKEN = process.env.MEMORY_BOX_TOKEN || "";
 const DEFAULT_BUCKET = process.env.DEFAULT_BUCKET || "General";
 
-// Memory types for formatting
-const MEMORY_TYPES = [
-  "TECHNICAL",
-  "DECISION",
-  "SOLUTION",
-  "CONCEPT",
-  "REFERENCE",
-  "APPLICATION",
-  "FACT"
-];
+console.error("DEBUG: Environment loaded");
 
-// Load and validate the system prompt
-const SYSTEM_PROMPT = loadSystemPrompt();
-if (process.env.SYSTEM_PROMPT && !validateSystemPrompt(SYSTEM_PROMPT)) {
-  console.error("Warning: Custom system prompt may be missing required elements. Using it anyway, but formatting may not work as expected.");
-}
+
 
 /**
  * Format a byte size into a human-readable string
@@ -98,21 +83,43 @@ class MemoryBoxClient {
    * Save a memory to Memory Box with support for source_type and reference_data
    */
   async saveMemory(
-    text: string, 
+    text?: string,
+    rawContent?: string,
     bucketId: string = DEFAULT_BUCKET, 
     sourceType: string = "llm_plugin",
     referenceData?: any
   ): Promise<any> {
     try {
+      // Validate that either text or raw_content is provided
+      if (!text && !rawContent) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "Either text or raw_content must be provided"
+        );
+      }
+
       // Build the request body
       const requestBody: any = {
-        text,
         bucketId,
         source_type: sourceType
       };
 
+      // Add text or raw_content
+      if (text) {
+        requestBody.text = text;
+      } else if (rawContent) {
+        requestBody.raw_content = rawContent;
+      }
+
       // Add reference_data if provided
       if (referenceData) {
+        // Validate that platform is provided if reference_data is used
+        if (!referenceData.source?.platform) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            "reference_data.source.platform is required when using reference_data"
+          );
+        }
         requestBody.reference_data = referenceData;
       } else {
         // Add default reference_data for Claude/VSCode integration
@@ -148,14 +155,39 @@ class MemoryBoxClient {
   }
 
   /**
-   * Search memories using semantic search
+   * Search memories using semantic search with pagination and date sorting
    */
-  async searchMemories(query: string, debug: boolean = false): Promise<any> {
+  async searchMemories(
+    query: string,
+    options?: {
+      bucketId?: string;
+      sourceType?: string;
+      limit?: number;
+      offset?: number;
+      debug?: boolean;
+      includeReferenceData?: boolean;
+      dateSort?: boolean;
+      sortOrder?: 'asc' | 'desc';
+    }
+  ): Promise<any> {
     try {
+      const params: any = { query };
+      
+      if (options) {
+        if (options.bucketId !== undefined) params.bucketId = options.bucketId;
+        if (options.sourceType !== undefined) params.source_type = options.sourceType;
+        if (options.limit !== undefined) params.limit = options.limit;
+        if (options.offset !== undefined) params.offset = options.offset;
+        if (options.debug !== undefined) params.debug = options.debug;
+        if (options.includeReferenceData !== undefined) params.include_reference_data = options.includeReferenceData;
+        if (options.dateSort !== undefined) params.date_sort = options.dateSort;
+        if (options.sortOrder !== undefined) params.sort_order = options.sortOrder;
+      }
+
       const response = await axios.get(
         `${this.baseUrl}/api/v2/memory`,
         {
-          params: { query, debug },
+          params,
           headers: {
             "Authorization": `Bearer ${this.token}`
           }
@@ -174,14 +206,38 @@ class MemoryBoxClient {
   }
 
   /**
-   * Get all memories
+   * Get all memories with pagination support
    */
-  async getAllMemories(): Promise<any> {
+  async getAllMemories(options?: {
+    all?: boolean;
+    bucketId?: string;
+    sourceType?: string;
+    limit?: number;
+    offset?: number;
+    includeReferenceData?: boolean;
+    dateSort?: boolean;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<any> {
     try {
+      const params: any = {};
+      
+      if (options) {
+        if (options.all !== undefined) params.all = options.all;
+        if (options.bucketId !== undefined) params.bucketId = options.bucketId;
+        if (options.sourceType !== undefined) params.source_type = options.sourceType;
+        if (options.limit !== undefined) params.limit = options.limit;
+        if (options.offset !== undefined) params.offset = options.offset;
+        if (options.includeReferenceData !== undefined) params.include_reference_data = options.includeReferenceData;
+        if (options.dateSort !== undefined) params.date_sort = options.dateSort;
+        if (options.sortOrder !== undefined) params.sort_order = options.sortOrder;
+      } else {
+        params.all = true; // Default behavior for backward compatibility
+      }
+
       const response = await axios.get(
         `${this.baseUrl}/api/v2/memory`,
         {
-          params: { all: true },
+          params,
           headers: {
             "Authorization": `Bearer ${this.token}`
           }
@@ -202,12 +258,27 @@ class MemoryBoxClient {
   /**
    * Get memories from a specific bucket
    */
-  async getBucketMemories(bucketId: string): Promise<any> {
+  async getBucketMemories(
+    bucketId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      includeReferenceData?: boolean;
+    }
+  ): Promise<any> {
     try {
+      const params: any = { bucketId };
+      
+      if (options) {
+        if (options.limit !== undefined) params.limit = options.limit;
+        if (options.offset !== undefined) params.offset = options.offset;
+        if (options.includeReferenceData !== undefined) params.include_reference_data = options.includeReferenceData;
+      }
+
       const response = await axios.get(
         `${this.baseUrl}/api/v2/memory`,
         {
-          params: { bucketId },
+          params,
           headers: {
             "Authorization": `Bearer ${this.token}`
           }
@@ -253,7 +324,7 @@ class MemoryBoxClient {
   /**
    * Get memory processing status
    */
-  async getMemoryStatus(memoryId: number | string): Promise<any> {
+  async getMemoryStatus(memoryId: number): Promise<any> {
     try {
       const response = await axios.get(
         `${this.baseUrl}/api/v2/memory/${memoryId}/status`,
@@ -278,7 +349,7 @@ class MemoryBoxClient {
   /**
    * Get related memories for a specific memory
    */
-  async getRelatedMemories(memoryId: number | string, minSimilarity: number = 0.7): Promise<any> {
+  async getRelatedMemories(memoryId: number, minSimilarity: number = 0.7): Promise<any> {
     try {
       const response = await axios.get(
         `${this.baseUrl}/api/v2/memory/${memoryId}/related`,
@@ -300,33 +371,153 @@ class MemoryBoxClient {
       throw error;
     }
   }
-}
 
-/**
- * Format a memory according to the system prompt
- */
-function formatMemory(text: string, type: string = "TECHNICAL"): string {
-  // Validate memory type
-  const memoryType = type.toUpperCase();
-  if (!MEMORY_TYPES.includes(memoryType)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid memory type: ${type}. Must be one of: ${MEMORY_TYPES.join(", ")}`
-    );
+  /**
+   * Create a new bucket
+   */
+  async createBucket(bucketName: string): Promise<any> {
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/api/v2/buckets`,
+        {},
+        {
+          params: { bucket_name: bucketName },
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to create bucket: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
   }
 
-  // Get current date in YYYY-MM-DD format
-  const today = format(new Date(), "yyyy-MM-dd");
-
-  // Format based on memory type
-  if (memoryType === "FACT") {
-    return `${today}: FACT: ${text}`;
+  /**
+   * Delete a bucket
+   */
+  async deleteBucket(bucketName: string, force: boolean = false): Promise<any> {
+    try {
+      const response = await axios.delete(
+        `${this.baseUrl}/api/v2/buckets/${bucketName}`,
+        {
+          params: { force },
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to delete bucket: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
   }
 
-  // For other memory types, use the standard format with uppercase type
-  // Update to match the preferred format in the new system prompt
-  return `${today}: ${memoryType} - ${text}`;
+  /**
+   * Update an existing memory
+   */
+  async updateMemory(
+    memoryId: number,
+    updates: {
+      text?: string;
+      rawContent?: string;
+      bucketId?: string;
+      sourceType?: string;
+      referenceData?: any;
+    }
+  ): Promise<any> {
+    try {
+      // Validate that at least one update field is provided
+      if (!updates.text && !updates.rawContent && !updates.bucketId && 
+          !updates.sourceType && !updates.referenceData) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "At least one of text, raw_content, bucket_id, source_type, or reference_data must be provided"
+        );
+      }
+
+      const requestBody: any = {};
+      
+      if (updates.text !== undefined) {
+        requestBody.text = updates.text;
+      }
+      
+      if (updates.rawContent !== undefined) {
+        requestBody.raw_content = updates.rawContent;
+      }
+      
+      if (updates.bucketId !== undefined) {
+        requestBody.bucketId = updates.bucketId;
+      }
+      
+      if (updates.sourceType !== undefined) {
+        requestBody.source_type = updates.sourceType;
+      }
+      
+      if (updates.referenceData !== undefined) {
+        requestBody.reference_data = updates.referenceData;
+      }
+
+      const response = await axios.put(
+        `${this.baseUrl}/api/v2/memory/${memoryId}`,
+        requestBody,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to update memory: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a memory
+   */
+  async deleteMemory(memoryId: number): Promise<any> {
+    try {
+      const response = await axios.delete(
+        `${this.baseUrl}/api/v2/memory/${memoryId}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${this.token}`
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to delete memory: ${error.response?.data?.detail || error.message}`
+        );
+      }
+      throw error;
+    }
+  }
 }
+
 
 /**
  * Create the MCP server
@@ -334,7 +525,7 @@ function formatMemory(text: string, type: string = "TECHNICAL"): string {
 const server = new Server(
   {
     name: "memory-box-mcp",
-    version: "0.1.0",
+    version: "1.0.0",
   },
   {
     capabilities: {
@@ -354,33 +545,61 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "save_memory",
-        description: "Save a memory to Memory Box with proper formatting",
+        description: "Save a memory to Memory Box",
         inputSchema: {
           type: "object",
           properties: {
             text: {
               type: "string",
-              description: "The memory content to save"
+              description: "The memory content to save (either text OR raw_content required)"
+            },
+            raw_content: {
+              type: "string",
+              description: "Raw content for processing (alternative to text)"
             },
             bucket_id: {
               type: "string",
               description: `The bucket to save the memory to (default: "${DEFAULT_BUCKET}")`
             },
-            format: {
-              type: "boolean",
-              description: "Whether to format the memory according to the system prompt (default: true)"
-            },
-            type: {
-              type: "string",
-              description: `The type of memory (${MEMORY_TYPES.join(", ")}) for formatting (default: "TECHNICAL")`
-            },
-            reference_data: {
-              type: "object",
-              description: "Additional metadata about the memory source and context (optional)"
-            },
             source_type: {
               type: "string",
               description: "Type of memory source (default: 'llm_plugin')"
+            },
+            reference_data: {
+              type: "object",
+              description: "Structured metadata for memory storage",
+              properties: {
+                source: {
+                  type: "object",
+                  required: ["platform"],
+                  properties: {
+                    platform: { type: "string", description: "Platform identifier (required)" },
+                    type: { type: "string", description: "Source type" },
+                    version: { type: "string", description: "Version info" },
+                    url: { type: "string", description: "Source URL" },
+                    title: { type: "string", description: "Source title" },
+                    additional_metadata: { type: "object", description: "Extra metadata" }
+                  }
+                },
+                context: {
+                  type: "object",
+                  properties: {
+                    related_memories: { type: "array", items: { type: "object" }, description: "Related memory references" },
+                    conversation_id: { type: "string", description: "Conversation identifier" },
+                    message_id: { type: "string", description: "Message identifier" }
+                  }
+                },
+                content_context: {
+                  type: "object",
+                  properties: {
+                    url: { type: "string", description: "Content URL" },
+                    title: { type: "string", description: "Content title" },
+                    surrounding_text: { type: "string", description: "Context around selection" },
+                    selected_text: { type: "string", description: "Selected text" },
+                    additional_context: { type: "object", description: "Extra context" }
+                  }
+                }
+              }
             }
           },
           required: ["text"]
@@ -394,11 +613,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             query: {
               type: "string",
-              description: "The search query"
+              description: "The search query (semantic search)"
+            },
+            bucket_id: {
+              type: "string",
+              description: "Filter to specific bucket"
+            },
+            source_type: {
+              type: "string",
+              description: "Filter by source type"
+            },
+            limit: {
+              type: "integer",
+              description: "Maximum number of results to return (1-100, default: 10)",
+              minimum: 1,
+              maximum: 100
+            },
+            offset: {
+              type: "integer",
+              description: "Number of results to skip for pagination (default: 0)",
+              minimum: 0
             },
             debug: {
               type: "boolean",
               description: "Include debug information in results (default: false)"
+            },
+            include_reference_data: {
+              type: "boolean",
+              description: "Include reference data in response (default: false)"
+            },
+            date_sort: {
+              type: "boolean",
+              description: "Sort semantic search results by date after similarity filtering (default: false)"
+            },
+            sort_order: {
+              type: "string",
+              description: "Sort order when date_sort is enabled (default: 'desc')",
+              enum: ["asc", "desc"]
             }
           },
           required: ["query"]
@@ -406,10 +657,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_all_memories",
-        description: "Retrieve all memories",
+        description: "Retrieve all memories with pagination support",
         inputSchema: {
           type: "object",
-          properties: {}
+          properties: {
+            all: {
+              type: "boolean",
+              description: "Get all memories (overrides pagination, default: false)"
+            },
+            bucket_id: {
+              type: "string",
+              description: "Filter to specific bucket"
+            },
+            source_type: {
+              type: "string",
+              description: "Filter by source type"
+            },
+            limit: {
+              type: "integer",
+              description: "Maximum number of results to return (1-100, default: 10)",
+              minimum: 1,
+              maximum: 100
+            },
+            offset: {
+              type: "integer",
+              description: "Number of results to skip for pagination (default: 0)",
+              minimum: 0
+            },
+            include_reference_data: {
+              type: "boolean",
+              description: "Include reference data in response (default: false)"
+            },
+            date_sort: {
+              type: "boolean",
+              description: "Sort results by date (default: false)"
+            },
+            sort_order: {
+              type: "string",
+              description: "Sort order (default: 'desc')",
+              enum: ["asc", "desc"]
+            }
+          }
         }
       },
       {
@@ -421,6 +709,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             bucket_id: {
               type: "string",
               description: "The bucket to retrieve memories from"
+            },
+            limit: {
+              type: "integer",
+              description: "Maximum number of results to return (1-100, default: 10)",
+              minimum: 1,
+              maximum: 100
+            },
+            offset: {
+              type: "integer",
+              description: "Number of results to skip for pagination (default: 0)",
+              minimum: 0
+            },
+            include_reference_data: {
+              type: "boolean",
+              description: "Include reference data in response (default: false)"
             }
           },
           required: ["bucket_id"]
@@ -433,7 +736,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {
             memory_id: {
-              type: ["integer", "string"],
+              type: "integer",
               description: "The ID of the memory to find related memories for"
             },
             min_similarity: {
@@ -451,29 +754,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           type: "object",
           properties: {
             memory_id: {
-              type: ["integer", "string"],
+              type: "integer",
               description: "The ID of the memory to check status for"
             }
           },
           required: ["memory_id"]
-        }
-      },
-      {
-        name: "format_memory",
-        description: "Format a text according to the memory system prompt without saving",
-        inputSchema: {
-          type: "object",
-          properties: {
-            text: {
-              type: "string",
-              description: "The text to format"
-            },
-            type: {
-              type: "string",
-              description: `The type of memory (${MEMORY_TYPES.join(", ")}) (default: "TECHNICAL")`
-            }
-          },
-          required: ["text"]
         }
       },
       {
@@ -495,6 +780,86 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             // No specific parameters needed for this operation
           }
         }
+      },
+      {
+        name: "create_bucket",
+        description: "Create a new bucket for organizing memories",
+        inputSchema: {
+          type: "object",
+          properties: {
+            bucket_name: {
+              type: "string",
+              description: "Name of the bucket to create"
+            }
+          },
+          required: ["bucket_name"]
+        }
+      },
+      {
+        name: "delete_bucket",
+        description: "Delete a bucket (empty by default, use force to delete with content)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            bucket_name: {
+              type: "string",
+              description: "Name of the bucket to delete"
+            },
+            force: {
+              type: "boolean",
+              description: "Force deletion even if bucket contains memories (default: false)"
+            }
+          },
+          required: ["bucket_name"]
+        }
+      },
+      {
+        name: "update_memory",
+        description: "Update an existing memory including text, bucket, and relationships",
+        inputSchema: {
+          type: "object",
+          properties: {
+            memory_id: {
+              type: "integer",
+              description: "The ID of the memory to update"
+            },
+            text: {
+              type: "string",
+              description: "New text content for the memory"
+            },
+            raw_content: {
+              type: "string",
+              description: "New raw content for the memory"
+            },
+            bucket_id: {
+              type: "string",
+              description: "Move memory to different bucket"
+            },
+            source_type: {
+              type: "string",
+              description: "Update source type"
+            },
+            reference_data: {
+              type: "object",
+              description: "Updated reference data (same structure as save_memory)"
+            }
+          },
+          required: ["memory_id"]
+        }
+      },
+      {
+        name: "delete_memory",
+        description: "Delete a specific memory",
+        inputSchema: {
+          type: "object",
+          properties: {
+            memory_id: {
+              type: "integer",
+              description: "The ID of the memory to delete"
+            }
+          },
+          required: ["memory_id"]
+        }
       }
     ]
   };
@@ -514,41 +879,47 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   switch (request.params.name) {
     case "save_memory": {
-      const text = String(request.params.arguments?.text || "");
+      const text = request.params.arguments?.text ? String(request.params.arguments.text) : undefined;
+      const rawContent = request.params.arguments?.raw_content ? String(request.params.arguments.raw_content) : undefined;
       const bucketId = String(request.params.arguments?.bucket_id || DEFAULT_BUCKET);
-      const shouldFormat = request.params.arguments?.format !== false; // Default to true
-      const type = String(request.params.arguments?.type || "TECHNICAL");
       const sourceType = String(request.params.arguments?.source_type || "llm_plugin");
       const referenceData = request.params.arguments?.reference_data;
 
-      if (!text) {
-        throw new McpError(ErrorCode.InvalidParams, "Text is required");
+      if (!text && !rawContent) {
+        throw new McpError(ErrorCode.InvalidParams, "Either text or raw_content is required");
       }
 
-      // Format the memory if requested
-      const formattedText = shouldFormat ? formatMemory(text, type) : text;
-
-      // Save the memory with source_type and reference_data
-      const result = await memoryBoxClient.saveMemory(formattedText, bucketId, sourceType, referenceData);
+      // Save the memory
+      const result = await memoryBoxClient.saveMemory(text, rawContent, bucketId, sourceType, referenceData);
 
       return {
         content: [{
           type: "text",
-          text: `Memory saved successfully with ID: ${result.id}\n\n${formattedText}`
+          text: `Memory saved successfully with ID: ${result.id}`
         }]
       };
     }
 
     case "search_memories": {
       const query = String(request.params.arguments?.query || "");
-      const debug = Boolean(request.params.arguments?.debug || false);
-
+      
       if (!query) {
         throw new McpError(ErrorCode.InvalidParams, "Query is required");
       }
 
+      const options = {
+        bucketId: request.params.arguments?.bucket_id ? String(request.params.arguments.bucket_id) : undefined,
+        sourceType: request.params.arguments?.source_type ? String(request.params.arguments.source_type) : undefined,
+        limit: request.params.arguments?.limit ? Number(request.params.arguments.limit) : undefined,
+        offset: request.params.arguments?.offset ? Number(request.params.arguments.offset) : undefined,
+        debug: Boolean(request.params.arguments?.debug || false),
+        includeReferenceData: Boolean(request.params.arguments?.include_reference_data || false),
+        dateSort: Boolean(request.params.arguments?.date_sort || false),
+        sortOrder: request.params.arguments?.sort_order as 'asc' | 'desc' | undefined
+      };
+
       // Search memories
-      const result = await memoryBoxClient.searchMemories(query, debug);
+      const result = await memoryBoxClient.searchMemories(query, options);
 
       // Format the results
       let responseText = `Search results for "${query}":\n\n`;
@@ -563,7 +934,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Add debug information if requested
-      if (debug && result.debug) {
+      if (options.debug && result.debug) {
         responseText += "\n\nDebug Information:\n";
         responseText += `Query: ${result.debug.query}\n`;
         responseText += `Query Terms: ${result.debug.query_terms.join(", ")}\n`;
@@ -580,8 +951,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "get_all_memories": {
-      // Get all memories
-      const result = await memoryBoxClient.getAllMemories();
+      const options = {
+        all: Boolean(request.params.arguments?.all || false),
+        bucketId: request.params.arguments?.bucket_id ? String(request.params.arguments.bucket_id) : undefined,
+        sourceType: request.params.arguments?.source_type ? String(request.params.arguments.source_type) : undefined,
+        limit: request.params.arguments?.limit ? Number(request.params.arguments.limit) : undefined,
+        offset: request.params.arguments?.offset ? Number(request.params.arguments.offset) : undefined,
+        includeReferenceData: Boolean(request.params.arguments?.include_reference_data || false),
+        dateSort: Boolean(request.params.arguments?.date_sort || false),
+        sortOrder: request.params.arguments?.sort_order as 'asc' | 'desc' | undefined
+      };
+
+      // Get memories
+      const result = await memoryBoxClient.getAllMemories(options);
 
       // Format the results
       let responseText = "All memories:\n\n";
@@ -609,8 +991,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new McpError(ErrorCode.InvalidParams, "Bucket ID is required");
       }
 
+      const options = {
+        limit: request.params.arguments?.limit ? Number(request.params.arguments.limit) : undefined,
+        offset: request.params.arguments?.offset ? Number(request.params.arguments.offset) : undefined,
+        includeReferenceData: Boolean(request.params.arguments?.include_reference_data || false)
+      };
+
       // Get memories from the specified bucket
-      const result = await memoryBoxClient.getBucketMemories(bucketId);
+      const result = await memoryBoxClient.getBucketMemories(bucketId, options);
 
       // Format the results
       let responseText = `Memories in bucket "${bucketId}":\n\n`;
@@ -631,24 +1019,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-    case "format_memory": {
-      const text = String(request.params.arguments?.text || "");
-      const type = String(request.params.arguments?.type || "TECHNICAL");
-
-      if (!text) {
-        throw new McpError(ErrorCode.InvalidParams, "Text is required");
-      }
-
-      // Format the memory
-      const formattedText = formatMemory(text, type);
-
-      return {
-        content: [{
-          type: "text",
-          text: `Formatted memory:\n\n${formattedText}`
-        }]
-      };
-    }
 
     case "get_usage_stats": {
       // Get usage statistics
@@ -707,7 +1077,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       
       // Get related memories
-      const result = await memoryBoxClient.getRelatedMemories(String(memoryId), minSimilarity);
+      const result = await memoryBoxClient.getRelatedMemories(Number(memoryId), minSimilarity);
       
       // Format the results
       let responseText = `Related memories for memory ID ${memoryId} (min similarity: ${minSimilarity * 100}%):\n\n`;
@@ -738,7 +1108,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       
       // Get memory status
-      const result = await memoryBoxClient.getMemoryStatus(String(memoryId));
+      const result = await memoryBoxClient.getMemoryStatus(Number(memoryId));
       
       // Format the results
       let responseText = `Memory status for ID ${memoryId}:\n\n`;
@@ -795,6 +1165,95 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    case "create_bucket": {
+      const bucketName = String(request.params.arguments?.bucket_name || "");
+
+      if (!bucketName) {
+        throw new McpError(ErrorCode.InvalidParams, "Bucket name is required");
+      }
+
+      // Create the bucket
+      const result = await memoryBoxClient.createBucket(bucketName);
+
+      return {
+        content: [{
+          type: "text",
+          text: `Bucket "${bucketName}" created successfully!\n\n${result.message || "The bucket is now available for storing memories."}`
+        }]
+      };
+    }
+
+    case "delete_bucket": {
+      const bucketName = String(request.params.arguments?.bucket_name || "");
+      const force = Boolean(request.params.arguments?.force || false);
+
+      if (!bucketName) {
+        throw new McpError(ErrorCode.InvalidParams, "Bucket name is required");
+      }
+
+      // Delete the bucket
+      const result = await memoryBoxClient.deleteBucket(bucketName, force);
+
+      return {
+        content: [{
+          type: "text",
+          text: `Bucket "${bucketName}" deleted successfully!\n\n${result.message || "The bucket has been removed."}`
+        }]
+      };
+    }
+
+    case "update_memory": {
+      const memoryId = request.params.arguments?.memory_id;
+
+      if (!memoryId) {
+        throw new McpError(ErrorCode.InvalidParams, "Memory ID is required");
+      }
+
+      const updates = {
+        text: request.params.arguments?.text ? String(request.params.arguments.text) : undefined,
+        rawContent: request.params.arguments?.raw_content ? String(request.params.arguments.raw_content) : undefined,
+        bucketId: request.params.arguments?.bucket_id ? String(request.params.arguments.bucket_id) : undefined,
+        sourceType: request.params.arguments?.source_type ? String(request.params.arguments.source_type) : undefined,
+        referenceData: request.params.arguments?.reference_data
+      };
+
+      // Update the memory
+      const result = await memoryBoxClient.updateMemory(Number(memoryId), updates);
+
+      let responseText = `Memory ${memoryId} updated successfully!`;
+      
+      if (result.processing_status === "requires_processing") {
+        responseText += "\n\nNote: The memory is being reprocessed and will be available shortly.";
+      } else if (result.text) {
+        responseText += `\n\nUpdated content:\n${result.text}`;
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: responseText
+        }]
+      };
+    }
+
+    case "delete_memory": {
+      const memoryId = request.params.arguments?.memory_id;
+
+      if (!memoryId) {
+        throw new McpError(ErrorCode.InvalidParams, "Memory ID is required");
+      }
+
+      // Delete the memory
+      const result = await memoryBoxClient.deleteMemory(Number(memoryId));
+
+      return {
+        content: [{
+          type: "text",
+          text: `Memory ${memoryId} deleted successfully!\n\n${result.message || "The memory has been permanently removed."}`
+        }]
+      };
+    }
+
     default:
       throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
   }
@@ -804,18 +1263,41 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
  * Start the server using stdio transport
  */
 async function main() {
-  // Log configuration
-  console.error("Memory Box MCP Server starting with configuration:");
-  console.error(`API URL: ${MEMORY_BOX_API_URL}`);
-  console.error(`Token: ${MEMORY_BOX_TOKEN ? "Configured" : "Not configured"}`);
-  console.error(`Default Bucket: ${DEFAULT_BUCKET}`);
-
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("Memory Box MCP Server running on stdio");
+  try {
+    console.error("DEBUG: Starting Memory Box MCP Server");
+    console.error("DEBUG: Environment variables:");
+    console.error(`  MEMORY_BOX_API_URL: ${MEMORY_BOX_API_URL}`);
+    console.error(`  MEMORY_BOX_TOKEN: ${MEMORY_BOX_TOKEN ? 'Set' : 'Not set'}`);
+    console.error(`  DEFAULT_BUCKET: ${DEFAULT_BUCKET}`);
+    console.error(`  NODE_ENV: ${process.env.NODE_ENV}`);
+    
+    const transport = new StdioServerTransport();
+    console.error("DEBUG: Created transport");
+    
+    await server.connect(transport);
+    console.error("DEBUG: Server connected successfully");
+    
+    // The server is now running and will handle messages
+    // Don't exit - let the server run
+  } catch (error) {
+    // Log error for debugging
+    console.error("ERROR: Failed to start server:", error);
+    console.error("ERROR: Stack trace:", error instanceof Error ? error.stack : 'No stack trace');
+    process.exit(1);
+  }
 }
 
-main().catch((error) => {
-  console.error("Server error:", error);
+// Add error handlers
+process.on('uncaughtException', (error) => {
+  console.error('ERROR: Uncaught exception:', error);
+  console.error('ERROR: Stack trace:', error.stack);
   process.exit(1);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('ERROR: Unhandled rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Start the server
+main();

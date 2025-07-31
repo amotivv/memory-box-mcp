@@ -1,0 +1,114 @@
+{
+  "dxt_version": "0.1",
+  "id": "memory-box-mcp",
+  "name": "memory-box-mcp",
+  "display_name": "Memory Box",
+  "version": "1.0.0",
+  "description": "Semantic memory storage and retrieval for Claude Desktop",
+  "long_description": "Memory Box enables Claude to store and retrieve memories using semantic search. Save important information, search by meaning, organize in buckets, and maintain a persistent knowledge base across conversations. Features include bucket organization, relationship management, usage tracking, and more.",
+  "author": {
+    "name": "amotivv, inc.",
+    "email": "support@amotivv.ai",
+    "url": "https://memorybox.amotivv.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/amotivv/memory-box-mcp"
+  },
+  "homepage": "https://memorybox.dev",
+  "documentation": "https://github.com/amotivv/memory-box-mcp/blob/main/README.md",
+  "support": "https://github.com/amotivv/memory-box-mcp/issues",
+  "icon": "memory-box-icon.png",
+  "keywords": ["memory", "semantic-search", "knowledge-base", "ai-memory", "mcp"],
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "MEMORY_BOX_API_URL": "${user_config.api_url}",
+        "MEMORY_BOX_TOKEN": "${user_config.api_token}",
+        "DEFAULT_BUCKET": "${user_config.default_bucket}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "save_memory",
+      "description": "Save a memory to Memory Box"
+    },
+    {
+      "name": "search_memories",
+      "description": "Search for memories using semantic search"
+    },
+    {
+      "name": "get_all_memories",
+      "description": "Retrieve all memories"
+    },
+    {
+      "name": "get_bucket_memories",
+      "description": "Get memories from a specific bucket"
+    },
+    {
+      "name": "get_buckets",
+      "description": "Retrieve a list of all available buckets"
+    },
+    {
+      "name": "create_bucket",
+      "description": "Create a new bucket for organizing memories"
+    },
+    {
+      "name": "delete_bucket",
+      "description": "Delete a bucket (empty by default, use force to delete with content)"
+    },
+    {
+      "name": "get_related_memories",
+      "description": "Find semantically similar memories"
+    },
+    {
+      "name": "check_memory_status",
+      "description": "Check the processing status of a memory"
+    },
+    {
+      "name": "update_memory",
+      "description": "Update an existing memory including text, bucket, and relationships"
+    },
+    {
+      "name": "delete_memory",
+      "description": "Delete a specific memory"
+    },
+    {
+      "name": "get_usage_stats",
+      "description": "View usage statistics and plan information"
+    }
+  ],
+  "user_config": {
+    "api_url": {
+      "type": "string",
+      "title": "Memory Box API URL",
+      "description": "The URL of your Memory Box instance (default: https://memorybox.amotivv.ai)",
+      "default": "https://memorybox.amotivv.ai",
+      "required": true
+    },
+    "api_token": {
+      "type": "string",
+      "title": "API Token",
+      "description": "Your Memory Box authentication token. Get it from the Memory Box dashboard at https://memorybox.amotivv.ai",
+      "sensitive": true,
+      "required": true
+    },
+    "default_bucket": {
+      "type": "string",
+      "title": "Default Bucket",
+      "description": "Default bucket for storing memories",
+      "default": "General",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}
