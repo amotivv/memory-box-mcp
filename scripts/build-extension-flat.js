@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Flat structure build script for creating Memory Box Desktop Extension (.dxt)
+ * Flat structure build script for creating Memory Box Desktop Extension (.mcpb)
  * Matches the structure of working extensions like Limitless
  * 
  * This script:
  * 1. Compiles TypeScript
  * 2. Creates a flat structure with package.json at root
  * 3. Installs dependencies at root level
- * 4. Creates a .dxt archive
+ * 4. Creates a .mcpb archive
  */
 
 import fs from 'fs';
@@ -159,9 +159,9 @@ async function build() {
       // Ignore errors
     }
     
-    // Step 9: Create .dxt archive
-    console.log('9. Creating .dxt archive...');
-    const outputPath = path.join(DIST_DIR, 'memory-box.dxt');
+    // Step 9: Create .mcpb archive
+    console.log('9. Creating .mcpb archive...');
+    const outputPath = path.join(DIST_DIR, 'memory-box.mcpb');
     
     await new Promise((resolve, reject) => {
       const output = fs.createWriteStream(outputPath);

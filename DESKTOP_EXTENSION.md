@@ -4,7 +4,7 @@ This guide covers the Memory Box Desktop Extension for Claude Desktop, providing
 
 ## What is a Desktop Extension?
 
-Desktop Extensions (.dxt files) are packaged MCP servers that can be installed directly into Claude Desktop without manual configuration. They provide:
+Desktop Extensions (.mcpb files) are packaged MCP servers that can be installed directly into Claude Desktop without manual configuration. They provide:
 
 - **One-click installation** - No manual editing of configuration files
 - **User-friendly configuration** - Settings UI within Claude Desktop
@@ -16,11 +16,11 @@ Desktop Extensions (.dxt files) are packaged MCP servers that can be installed d
 ### Method 1: Download from GitHub Releases (Recommended)
 
 1. Visit the [Memory Box MCP Releases page](https://github.com/amotivv/memory-box-mcp/releases)
-2. Download the latest `memory-box.dxt` file
+2. Download the latest `memory-box.mcpb` file
 3. Open Claude Desktop
 4. Navigate to Settings → Extensions
 5. Click "Install from file"
-6. Select the downloaded `memory-box.dxt` file
+6. Select the downloaded `memory-box.mcpb` file
 7. Configure your settings in the extension configuration panel
 
 ### Method 2: Build from Source
@@ -38,7 +38,7 @@ npm install
 # Build the extension
 npm run build-extension
 
-# The extension will be at dist/memory-box.dxt
+# The extension will be at dist/memory-box.mcpb
 ```
 
 ## Configuration
@@ -134,7 +134,7 @@ The extension provides all Memory Box tools:
 
 When a new version is available:
 
-1. Download the latest `memory-box.dxt` from releases
+1. Download the latest `memory-box.mcpb` from releases
 2. In Claude Desktop, go to Settings → Extensions
 3. Uninstall the current version
 4. Install the new version
@@ -178,7 +178,7 @@ If you're running your own Memory Box instance:
 ### Extension Structure
 
 ```
-memory-box.dxt
+memory-box.mcpb
 ├── manifest.json      # Extension metadata and configuration
 ├── icon.png          # Extension icon
 └── server/           # MCP server files
@@ -194,7 +194,7 @@ To create a custom build:
 1. Modify the source code as needed
 2. Update `manifest.json` with your changes
 3. Run `npm run build-extension`
-4. Test the generated `.dxt` file
+4. Test the generated `.mcpb` file
 
 ### Contributing
 
