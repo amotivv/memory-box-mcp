@@ -53,11 +53,11 @@ The server has been installed and configured for use with Cline. Note that you n
 
 The easiest way to use Memory Box with Claude Desktop is through the Desktop Extension:
 
-1. Download the latest `memory-box.dxt` file from the [releases page](https://github.com/amotivv/memory-box-mcp/releases)
+1. Download the latest `memory-box.mcpb` file from the [releases page](https://github.com/amotivv/memory-box-mcp/releases)
 2. Open Claude Desktop
 3. Go to Settings > Extensions
 4. Click "Install from file"
-5. Select the downloaded `memory-box.dxt` file
+5. Select the downloaded `memory-box.mcpb` file
 6. Configure your Memory Box API token in the extension settings
 
 The extension will automatically configure all necessary environment variables and tools.
@@ -399,7 +399,7 @@ To build the Desktop Extension package:
    npm run build-extension
    ```
 
-3. The built extension will be available at `dist/memory-box.dxt`
+3. The built extension will be available at `dist/memory-box.mcpb`
 
 ### Release Process
 
@@ -407,4 +407,4 @@ To build the Desktop Extension package:
 2. Update `CHANGELOG.md` with new changes
 3. Commit changes
 4. Create a new GitHub release
-5. Upload the `memory-box.dxt` file as a release asset
+5. Upload the `memory-box.mcpb` file as a release asset

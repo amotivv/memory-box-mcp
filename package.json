@@ -1,6 +1,6 @@
 {
   "name": "memory-box-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Model Context Protocol Server for Memory Box - semantic memory storage and retrieval",
   "private": true,
   "type": "module",

@@ -1,9 +1,8 @@
 {
-  "dxt_version": "0.1",
-  "id": "memory-box-mcp",
+  "manifest_version": "0.2",
   "name": "memory-box-mcp",
   "display_name": "Memory Box",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Semantic memory storage and retrieval for Claude Desktop",
   "long_description": "Memory Box enables Claude to store and retrieve memories using semantic search. Save important information, search by meaning, organize in buckets, and maintain a persistent knowledge base across conversations. Features include bucket organization, relationship management, usage tracking, and more.",
   "author": {

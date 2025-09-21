@@ -5,6 +5,23 @@ All notable changes to the Memory Box MCP Server will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-09-20
+
+### Changed
+- **Desktop Extension Format Update**:
+  - Updated from `.dxt` to `.mcpb` file extension following Anthropic's naming convention change
+  - Updated manifest format to use `manifest_version: "0.2"` per latest MCPB specification
+  - All functionality remains the same - this is purely a format update for compatibility
+
+- **Documentation Updates**:
+  - Updated README.md to reference `.mcpb` files instead of `.dxt`
+  - Updated DESKTOP_EXTENSION.md with new file extension and installation instructions
+  - Updated build scripts to generate `.mcpb` archives
+
+### Fixed
+- Resolved "Invalid manifest. Unrecognized keys in object" errors in Claude Desktop
+- Fixed compatibility with latest Claude Desktop extension loading system
+
 ## [1.0.0] - 2025-07-31
 
 ### Added
