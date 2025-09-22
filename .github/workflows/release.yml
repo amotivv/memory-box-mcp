@@ -35,12 +35,12 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./dist/memory-box.dxt
+        files: ./dist/memory-box.mcpb
         body: |
           ## Installation
           
           ### Claude Desktop Extension
-          1. Download `memory-box.dxt` from the assets below
+          1. Download `memory-box.mcpb` from the assets below
           2. Open Claude Desktop
           3. Go to Settings > Extensions
           4. Click "Install from file"
